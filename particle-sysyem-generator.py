@@ -167,12 +167,12 @@ if __name__ == '__main__':
         for i in range(N):
             for j in range(N):
                 if A[p][j] == i:
-                    links += [('X_'+str(p)+'^'+str(i),'X_'+str(p+1)+'^'+str(j))]
+                    links += [('('+str(p)+','+str(i)+')','('+str(p+1)+','+str(j)+')')]
     # json 
     import json
     
     parents, children = zip(*links)
-    root_nodes = {x for x in parents if x[2]==str(0)}
+    root_nodes = {x for x in parents if x[1]==str(0)}
     for node in root_nodes:
         links.append(('Root', node))
     
