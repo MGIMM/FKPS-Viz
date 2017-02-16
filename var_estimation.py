@@ -53,7 +53,7 @@ class RareEvents:
             X = X_cloned
 
             
-            for sigma_range in np.arange(0.35,0.05,-0.05):
+            for sigma_range in np.arange(0.5,0.05,-0.05):
                 for j in range(N):
                     for index_shaker in range(shake_times):
                         X_iter = self.shaker(X[j],sigma_1 = sigma_range)
@@ -168,8 +168,8 @@ if __name__ == '__main__':
     
     print ('\n============================================================')
     # parameters 
-    N_test = 100 
-    p_0_test = 0.1 
+    N_test = 1000 
+    p_0_test = 0.5 
     shaker = shaker_gaussian
     shake_times = 2 
     num_simulation = 200
@@ -191,45 +191,9 @@ if __name__ == '__main__':
     # tracing the genealogical information
     A = test_result['A']
     xi = test_result['xi']
-    t0 = time()    
+    t0 = time()
     var = var_estimator_non_asym(xi,A,N_test)
     print ('Non-asymptotic variance estimator: ' + str(var))
-    print ('Time spent for variance estimation (naive version): ' + str(time() - t0))    
-  
-    # output .json for tree visulization 
-    n,N = np.shape(xi)
-    n -= 1
-    
-    # creat (parent, child) couples
-    links = []
-    for p in range(n):
-        for i in range(N):
-            for j in range(N):
-                if A[p][j] == i:
-                    links += [('('+str(p)+','+str(i)+')','('+str(p+1)+','+str(j)+')')]
-    # json 
-    import json
-    
-    parents, children = zip(*links)
-    root_nodes = {x for x in parents if x[1]==str(0)}
-    for node in root_nodes:
-        links.append(('Root', node))
-    
-    def get_nodes(node):
-        d = {}
-        d['name'] = node
-        children = get_children(node)
-        if children:
-            d['children'] = [get_nodes(child) for child in children]
-        return d
-    
-    def get_children(node):
-        return [x[1] for x in links if x[0] == node]
-    
-    tree = get_nodes('Root')
-    # print json.dumps(tree, indent=1)
-    
-    # output
-    with open('data.json', 'w') as fp:
-        json.dump(tree, fp, indent=1)
+    print ('Time spent for variance estimation (naive version): ' +\
+            str(time() - t0) + ' s')    
 
