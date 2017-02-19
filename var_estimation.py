@@ -25,8 +25,9 @@ class RareEvents:
         # Initiation
         t_0 = time()
         X = self.mu_0(N)
-        xi = [X]
-        A = [] 
+        # xi = [X]
+        # A = [] 
+        ancestor_index = range(N) 
         
         p_0 = self.p_0
         L = np.array([-np.Inf,np.sort(self.score_function(X))[np.int((1-p_0)*N)]])
@@ -48,8 +49,8 @@ class RareEvents:
             for i in range(N):
                 A_k[i] = np.random.choice(survive_index)
                 X_cloned[i] = X[A_k[i]]
+                ancestor_index[i] = ancestor_index[A_k[i]]
             
-            A += [A_k]   
             X = X_cloned
 
             
@@ -60,12 +61,30 @@ class RareEvents:
                     if self.score_function(X_iter)>L[k]:
                         X[j] = X_iter
             L = np.append(L, np.sort(self.score_function(X))[np.int((1-p_0)*N)])
-            xi += [X]
             k += 1
 
         N_L = np.sum((self.score_function(X)>self.level))
         r_hat = N_L/float(N)
         p_hat = p_0**(k-1)*r_hat 
+
+        # variance estimation
+        I_n = []
+        for i in range(N):
+            if X[i]> self.level:
+                I_n += [i]
+                
+        set_0 = np.zeros(N) 
+        for ind_anc in range(N):
+            for i in I_n:
+                if ancestor_index[i] == ind_anc:
+                    set_0[ind_anc] += 1
+                    
+        V = np.sum(set_0)**2 - np.sum(set_0**2)
+        V *= N**(k-2)*1.0/(N-1)**(k) 
+        V = (float(len(I_n))/N)**2 -V
+        
+        V *= N
+        
 
         if status_tracking ==True:
             print ("estimation of p: " + str(p_hat))
@@ -73,46 +92,45 @@ class RareEvents:
             print ("Time spent: %s s" %(time() - t_0) )
             #print ("score_function called: %s times" % S_called_times)
         output = {'p_hat':p_hat,  \
-                  'A':A,\
-                  'xi':xi,\
+                  'V':V
                  }    
         return output 
 
-def var_estimator_non_asym(xi,A,N):
-    '''
-    this function is simplifief version for estimating the asymptotic variance for 
-    f = \mathds{1}_{\{S(x)>level_test\}}. 
-    '''
-    n = np.shape(xi)[0]-1 
-    O = np.zeros((n+1,n+1,N))
-    for p in range(n+1):
-        for q in np.arange(p,n+1):
-            for i in range(N):
-                k = q
-                anc = i
-                while k>p:
-                    anc = A[k-1][anc]
-                    k -= 1
-                O[p][q][i] = anc 
-        
-    
-    I_n = []
-    for i in range(N):
-        if xi[n][i]> level_test:
-            I_n += [i]
-            
-    set_0 = np.zeros(N) 
-    for ind_anc in range(N):
-        for i in I_n:
-            if O[0][n][i] == ind_anc:
-                set_0[ind_anc] += 1
-                
-    V = np.sum(set_0)**2 - np.sum(set_0**2)
-    V *= N**(n-1)*1.0/(N-1)**(n+1) 
-    V = (float(len(I_n))/N)**2 -V
-    
-    V *= N
-    return V
+# def var_estimator_non_asym(xi,A,N):
+#     '''
+#     this function is simplifief version for estimating the asymptotic variance for 
+#     f = \mathds{1}_{\{S(x)>level_test\}}. 
+#     '''
+#     n = np.shape(xi)[0]-1 
+#     O = np.zeros((n+1,n+1,N))
+#     for p in range(n+1):
+#         for q in np.arange(p,n+1):
+#             for i in range(N):
+#                 k = q
+#                 anc = i
+#                 while k>p:
+#                     anc = A[k-1][anc]
+#                     k -= 1
+#                 O[p][q][i] = anc 
+#         
+#     
+#     I_n = []
+#     for i in range(N):
+#         if xi[n][i]> level_test:
+#             I_n += [i]
+#             
+#     set_0 = np.zeros(N) 
+#     for ind_anc in range(N):
+#         for i in I_n:
+#             if O[0][n][i] == ind_anc:
+#                 set_0[ind_anc] += 1
+#                 
+#     V = np.sum(set_0)**2 - np.sum(set_0**2)
+#     V *= N**(n-1)*1.0/(N-1)**(n+1) 
+#     V = (float(len(I_n))/N)**2 -V
+#     
+#     V *= N
+#     return V
 
 
 
@@ -168,11 +186,11 @@ if __name__ == '__main__':
     
     print ('\n============================================================')
     # parameters 
-    N_test = 1000 
+    N_test = 2000 
     p_0_test = 0.5 
     shaker = shaker_gaussian
-    shake_times = 2 
-    num_simulation = 200
+    shake_times = 3 
+    # num_simulation = 200
     level_test = 4 
     test_info = '|num_particles_' + str(N_test) + '|' + \
             str(shaker).split(' ')[1] + '|shake_times_' + str(shake_times) 
@@ -189,11 +207,6 @@ if __name__ == '__main__':
     # test
     test_result = rare_test.adaptive_levels(N = N_test, shake_times = shake_times, status_tracking=True)
     # tracing the genealogical information
-    A = test_result['A']
-    xi = test_result['xi']
-    t0 = time()
-    var = var_estimator_non_asym(xi,A,N_test)
+    var = test_result['V']
     print ('Non-asymptotic variance estimator: ' + str(var))
-    print ('Time spent for variance estimation (naive version): ' +\
-            str(time() - t0) + ' s')    
 

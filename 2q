@@ -25,9 +25,9 @@ class RareEvents:
         # Initiation
         t_0 = time()
         X = self.mu_0(N)
-        xi = [X]
-        A = [] 
-        G = []
+        # xi = [X]
+        # A = [] 
+        ancestor_index = range(N) 
         
         p_0 = self.p_0
         L = np.array([-np.Inf,np.sort(self.score_function(X))[np.int((1-p_0)*N)]])
@@ -36,12 +36,9 @@ class RareEvents:
         while(L[k]<self.level):
             I = []
             survive_index = []
-            potential = np.zeros(N) 
             for i in range(N):
-                potential[i] += [self.score_function(X[i])> L[k]]
-                if potential[i]:
+                if self.score_function(X[i])>L[k]:
                     survive_index += [i]
-            G += [potential]
 
            # to ensure that I_k would not be empty
             if len(survive_index) == 0:        
@@ -52,8 +49,8 @@ class RareEvents:
             for i in range(N):
                 A_k[i] = np.random.choice(survive_index)
                 X_cloned[i] = X[A_k[i]]
+                ancestor_index[i] = ancestor_index[A_k[i]]
             
-            A += [A_k]   
             X = X_cloned
 
             
@@ -64,14 +61,31 @@ class RareEvents:
                     if self.score_function(X_iter)>L[k]:
                         X[j] = X_iter
             L = np.append(L, np.sort(self.score_function(X))[np.int((1-p_0)*N)])
-            xi += [X]
             k += 1
 
         N_L = np.sum((self.score_function(X)>self.level))
         r_hat = N_L/float(N)
         p_hat = p_0**(k-1)*r_hat 
-        # fake potential for the particles in the last steps
-        G += [np.zeros(N)]
+        print(ancestor_index)
+
+        # variance estimation
+        I_n = []
+        for i in range(N):
+            if X[i]> self.level:
+                I_n += [i]
+                
+        set_0 = np.zeros(N) 
+        for ind_anc in range(N):
+            for i in I_n:
+                if ancestor_index[i] == ind_anc:
+                    set_0[ind_anc] += 1
+                    
+        V = np.sum(set_0)**2 - np.sum(set_0**2)
+        V *= N**(k)*1.0/(N-1)**(k) 
+        V = r_hat**2 -V
+        
+        V *= N
+        
 
         if status_tracking ==True:
             print ("estimation of p: " + str(p_hat))
@@ -79,47 +93,45 @@ class RareEvents:
             print ("Time spent: %s s" %(time() - t_0) )
             #print ("score_function called: %s times" % S_called_times)
         output = {'p_hat':p_hat,  \
-                  'xi':xi,  \
-                  'A':A,  \
-                  'G':G
+                  'V':V
                  }    
         return output 
 
-def var_estimator_non_asym(xi,A,N):
-    '''
-    this function is simplifief version for estimating the asymptotic variance for 
-    f = \mathds{1}_{\{S(x)>level_test\}}. 
-    '''
-    n = np.shape(xi)[0]-1 
-    O = np.zeros((n+1,n+1,N))
-    for p in range(n+1):
-        for q in np.arange(p,n+1):
-            for i in range(N):
-                k = q
-                anc = i
-                while k>p:
-                    anc = A[k-1][anc]
-                    k -= 1
-                O[p][q][i] = anc 
-        
-    
-    I_n = []
-    for i in range(N):
-        if xi[n][i]> level_test:
-            I_n += [i]
-            
-    set_0 = np.zeros(N) 
-    for ind_anc in range(N):
-        for i in I_n:
-            if O[0][n][i] == ind_anc:
-                set_0[ind_anc] += 1
-                
-    V = np.sum(set_0)**2 - np.sum(set_0**2)
-    V *= N**(n-1)*1.0/(N-1)**(n+1) 
-    V = (float(len(I_n))/N)**2 -V
-    
-    V *= N
-    return V
+# def var_estimator_non_asym(xi,A,N):
+#     '''
+#     this function is simplifief version for estimating the asymptotic variance for 
+#     f = \mathds{1}_{\{S(x)>level_test\}}. 
+#     '''
+#     n = np.shape(xi)[0]-1 
+#     O = np.zeros((n+1,n+1,N))
+#     for p in range(n+1):
+#         for q in np.arange(p,n+1):
+#             for i in range(N):
+#                 k = q
+#                 anc = i
+#                 while k>p:
+#                     anc = A[k-1][anc]
+#                     k -= 1
+#                 O[p][q][i] = anc 
+#         
+#     
+#     I_n = []
+#     for i in range(N):
+#         if xi[n][i]> level_test:
+#             I_n += [i]
+#             
+#     set_0 = np.zeros(N) 
+#     for ind_anc in range(N):
+#         for i in I_n:
+#             if O[0][n][i] == ind_anc:
+#                 set_0[ind_anc] += 1
+#                 
+#     V = np.sum(set_0)**2 - np.sum(set_0**2)
+#     V *= N**(n-1)*1.0/(N-1)**(n+1) 
+#     V = (float(len(I_n))/N)**2 -V
+#     
+#     V *= N
+#     return V
 
 
 
@@ -175,8 +187,8 @@ if __name__ == '__main__':
     
     print ('\n============================================================')
     # parameters 
-    N_test = 100 
-    p_0_test = 0.1 
+    N_test = 10 
+    p_0_test = 0.5 
     shaker = shaker_gaussian
     shake_times = 2 
     num_simulation = 200
@@ -196,54 +208,6 @@ if __name__ == '__main__':
     # test
     test_result = rare_test.adaptive_levels(N = N_test, shake_times = shake_times, status_tracking=True)
     # tracing the genealogical information
-    A = test_result['A']
-    xi = test_result['xi']
-    G = test_result['G']
-    t0 = time()    
-    var = var_estimator_non_asym(xi,A,N_test)
+    var = test_result['V']
     print ('Non-asymptotic variance estimator: ' + str(var))
-    print ('Time spent for variance estimation (naive version): ' + str(time() - t0))    
-  
-    # output .json for tree visulization 
-    n,N = np.shape(xi)
-    n -= 1
-    
-    # creat (parent, child) couples
-    links = []
-    for p in range(n):
-        for i in range(N):
-            for j in range(N):
-                if A[p][j] == i:
-                    links += [('('+str(p)+','+str(i)+')','('+str(p+1)+','+str(j)+')')]
-    # json 
-    import json
-    
-    parents, children = zip(*links)
-    # root_nodes = {x for x in parents if x[1]==str(0)}
-    root_nodes = {'('+str(0)+','+str(i)+')' for i in range(N)}
-    for node in root_nodes:
-        links.append(('Root', node))
-    
-    def get_nodes(node):
-        d = {}
-        d['name'] = node
-        children = get_children(node)
-        if children:
-            d['children'] = [get_nodes(child) for child in children]
-        # add particle information
-        if node != 'Root':
-            d['potential'] = G[int(node[1])][int(node[3])]
-            d['value'] = xi[int(node[1])][int(node[3])]
-
-        return d
-    
-    def get_children(node):
-        return [x[1] for x in links if x[0] == node]
-    
-    tree = get_nodes('Root')
-    # print json.dumps(tree, indent=1)
-    
-    # output
-    with open('data.json', 'w') as fp:
-        json.dump(tree, fp, indent=1)
 

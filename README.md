@@ -9,7 +9,7 @@ Feynman-Kac Particle System Visulization
 
 * got to the page `http://localhost:8000/` in the browser 
  
-### particle-system-generator.py
+### 'particle-system-generator.py'
 
 * `N_test` :  number of particles
 
@@ -21,6 +21,4 @@ be affected.
 
 ### `var_estimation.py` 
 
-This file is in the same structure of `particle-system-generator.py`.
-
-run `python var_estimation.py` to test the variance estimator. 
+run `python var_estimation.py` to test the variance estimator with `N_test` large. 
