@@ -96,8 +96,10 @@ function update(source) {
   nodeEnter.append("circle")
       .attr("r", 1e-6)
       .style("fill", function(d) {
-        if(d.children || d._children) return "lightsteelblue"
-        else return "#fff";
+        if(d.potential===1) return "lightsteelblue"
+        else return "#fff"
+        // if(d.children || d._children) return "lightsteelblue"
+        // else return "#fff";
       });
 
   nodeEnter.append("text")
@@ -115,8 +117,10 @@ function update(source) {
   nodeUpdate.select("circle")
       .attr("r", 4.5)
       .style("fill", function(d) {
-        if(d.children || d._children) return "lightsteelblue"
-        else return "#fff";
+        if(d.potential===1) return "lightsteelblue"
+        else return "#fff"
+        // if(d.children || d._children) return "lightsteelblue"
+        // else return "#fff";
       });
 
   nodeUpdate.select("text")
