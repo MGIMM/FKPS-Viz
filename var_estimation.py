@@ -191,7 +191,7 @@ if __name__ == '__main__':
     shaker = shaker_gaussian
     shake_times = 3 
     # num_simulation = 200
-    level_test = 4 
+    level_test = 3 
     test_info = '|num_particles_' + str(N_test) + '|' + \
             str(shaker).split(' ')[1] + '|shake_times_' + str(shake_times) 
             
