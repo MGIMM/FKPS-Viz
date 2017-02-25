@@ -22,6 +22,18 @@
   stroke-width: 1.5px;
 }
 
+.axis path,
+.axis line {
+  fill: none;
+  stroke: black;
+  shape-rendering: crispEdges;
+}
+
+.axis text {
+  font-family: sans-serif;
+  font-size: 11px;
+}
+
 </style>
 <body>
 <button onClick="submit()">update</button>
@@ -35,17 +47,17 @@
   <option value=4>4</option>
   <option value=5>5</option>
 </select>
-
+<div id="tree"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script src="https://d3js.org/d3.v3.min.js"></script>
 <script>
 
 var margin = {top: 20, right: 120, bottom: 20, left: -50},
-    width = 3200 - margin.right - margin.left,
+    width = 1500 - margin.right - margin.left,
     height = 2000 - margin.top - margin.bottom;
 var min = Number.POSITIVE_INFINITY,
     max = Number.NEGATIVE_INFINITY;
-var scaleMode = false;
+var scaleMode = true;
 var i = 0,
     duration = 1500,
     root;
@@ -56,14 +68,17 @@ var tree = d3.layout.tree()
 var diagonal = d3.svg.diagonal()
     .projection(function(d) { return [d.y, d.x]; });
 
-var svg = d3.select("body").append("svg")
+var svg = d3.select("#tree").append("svg")
     .attr("width", width + margin.right + margin.left)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
 var scale = d3.scale.linear()
-                    .range([margin.top, height]);
+              .range([height-margin.top, margin.top]);
+var yAxis = d3.svg.axis()
+              .ticks(20)
+              .orient("left");
 
 d3.json("data.json", function(error, flare) {
   if (error) throw error;
@@ -74,6 +89,16 @@ d3.json("data.json", function(error, flare) {
 
   recursion(root);
   scale.domain([min,max]);
+  yAxis.scale(scale);
+  svg.append("g")
+      .attr("class", "axis")
+      .attr("transform", "translate(100,0)")
+      .attr("opacity",function(d){
+        if(scaleMode) return 1;
+        else return 0;
+      })
+      .call(yAxis);
+
   function collapse(d) {
     if (d.children) {
       d._children = d.children;
@@ -81,12 +106,14 @@ d3.json("data.json", function(error, flare) {
       d.children = null;
     }
   }
-  root.children.forEach(collapse);
+  // root.children.forEach(collapse);
   update(root);
 });
 
 function redraw() {
   scaleMode = !scaleMode;
+  if(scaleMode) d3.select(".axis").style("opacity", 1);
+  else d3.select(".axis").style("opacity", 0);
   d3.selectAll(".node")
   .transition()
   .duration(duration)
@@ -165,10 +192,10 @@ function update(source) {
   nodeEnter.append("circle")
       .attr("r", 1e-6)
       .style("fill", function(d) {
-        // if(d.potential===1) return "lightsteelblue"
-        // else return "#fff"
-        if(d.children || d._children) return "lightsteelblue";
+        if(d.potential===1) return "lightsteelblue";
         else return "#fff";
+        // if(d.children || d._children) return "lightsteelblue";
+        // else return "#fff";
       });
 
   nodeEnter.append("text")
@@ -188,10 +215,10 @@ function update(source) {
   nodeUpdate.select("circle")
       .attr("r", 4.5)
       .style("fill", function(d) {
-        // if(d.potential===1) return "lightsteelblue"
-        // else return "#fff"
-        if(d.children || d._children) return "lightsteelblue";
+        if(d.potential===1) return "lightsteelblue";
         else return "#fff";
+        // if(d.children || d._children) return "lightsteelblue";
+        // else return "#fff";
       });
 
   nodeUpdate.select("text")
