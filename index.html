@@ -27,6 +27,14 @@
 <button onClick="submit()">update</button>
 <button onClick="reset()">reset</button>
 <input id="mode" type="checkbox" value="highlight">highlight mode<br>
+<button onClick="redraw()">unit/scale</button>
+<select id="depthSelected"  onchange="expandDepth()">
+  <option value=1>1</option>
+  <option value=2>2</option>
+  <option value=3>3</option>
+  <option value=4>4</option>
+  <option value=5>5</option>
+</select>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script src="https://d3js.org/d3.v3.min.js"></script>
@@ -34,12 +42,14 @@
 
 var margin = {top: 20, right: 120, bottom: 20, left: -50},
     width = 3200 - margin.right - margin.left,
-    height = 3800 - margin.top - margin.bottom;
-
+    height = 1500 - margin.top - margin.bottom;
+var min = Number.POSITIVE_INFINITY,
+    max = Number.NEGATIVE_INFINITY;
+var scaleMode = false;
 var i = 0,
-    duration = 750,
+    duration = 1500,
     root;
-
+var depth = 0;
 var tree = d3.layout.tree()
     .size([height, width]);
 
@@ -49,8 +59,11 @@ var diagonal = d3.svg.diagonal()
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.right + margin.left)
     .attr("height", height + margin.top + margin.bottom)
-  .append("g")
+    .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var scale = d3.scale.linear()
+                    .range([margin.top, height]);
 
 d3.json("data.json", function(error, flare) {
   if (error) throw error;
@@ -59,6 +72,8 @@ d3.json("data.json", function(error, flare) {
   root.x0 = height / 2;
   root.y0 = 0;
 
+  recursion(root);
+  scale.domain([min,max]);
   function collapse(d) {
     if (d.children) {
       d._children = d.children;
@@ -66,11 +81,61 @@ d3.json("data.json", function(error, flare) {
       d.children = null;
     }
   }
-
-  // root.children.forEach(collapse);
+  root.children.forEach(collapse);
   update(root);
 });
 
+function redraw() {
+  scaleMode = !scaleMode;
+  d3.selectAll(".node")
+  .transition()
+  .duration(duration)
+  .attr("transform", function(d) {
+    if(d.depth>0 && scaleMode) d.x = scale(d.value);
+    else d.x = d._x;
+    return "translate(" + d.y + "," + d.x + ")";
+  });
+  d3.selectAll(".link")
+  .transition()
+  .duration(duration)
+  .attr("d", diagonal);
+}
+function recursion(node){
+    if(node.hasOwnProperty("value")){
+      if(node.value < min) min = node.value;
+      if(node.value > max) max = node.value;
+    }
+    if (node.hasOwnProperty("children")) {
+        // if the current object has the 'children' property
+        // recursively repeat for each children
+        node.children.forEach(function(child){
+            recursion(child);
+        });
+    }
+}
+function expand(d) {
+  if (d.depth < depth) {
+    if(d._children) {
+      d.children = d._children;
+      d._children = null;
+      d.children.forEach(expand);
+    }
+    if(d.children) d.children.forEach(expand);
+  }
+  else{
+    if(d.children) {
+      d._children = d.children;
+      d.children = null;
+      d._children.forEach(expand);
+    }
+    if(d._children) d._children.forEach(expand);
+  }
+}
+function expandDepth() {
+  depth = document.getElementById("depthSelected").value;
+  root.children.forEach(expand);
+  update(root);
+}
 d3.select(self.frameElement).style("height", "800px");
 
 function update(source) {
@@ -80,7 +145,11 @@ function update(source) {
       links = tree.links(nodes);
 
   // Normalize for fixed-depth.
-  nodes.forEach(function(d) { d.y = d.depth * 180; });
+  nodes.forEach(function(d) {
+    d.y = d.depth * 180;
+    d._x = d.x;
+    if(d.depth>0 && scaleMode) d.x = scale(d.value);
+  });
 
   // Update the nodes…
   var node = svg.selectAll("g.node")
@@ -96,10 +165,10 @@ function update(source) {
   nodeEnter.append("circle")
       .attr("r", 1e-6)
       .style("fill", function(d) {
-        if(d.potential===1) return "lightsteelblue"
-        else return "#fff"
-        // if(d.children || d._children) return "lightsteelblue"
-        // else return "#fff";
+        // if(d.potential===1) return "lightsteelblue"
+        // else return "#fff"
+        if(d.children || d._children) return "lightsteelblue";
+        else return "#fff";
       });
 
   nodeEnter.append("text")
@@ -112,15 +181,17 @@ function update(source) {
   // Transition nodes to their new position.
   var nodeUpdate = node.transition()
       .duration(duration)
-      .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+      .attr("transform", function(d) {
+        return "translate(" + d.y + "," + d.x + ")";
+      });
 
   nodeUpdate.select("circle")
       .attr("r", 4.5)
       .style("fill", function(d) {
-        if(d.potential===1) return "lightsteelblue"
-        else return "#fff"
-        // if(d.children || d._children) return "lightsteelblue"
-        // else return "#fff";
+        // if(d.potential===1) return "lightsteelblue"
+        // else return "#fff"
+        if(d.children || d._children) return "lightsteelblue";
+        else return "#fff";
       });
 
   nodeUpdate.select("text")
@@ -140,7 +211,7 @@ function update(source) {
 
   // Update the links…
   var link = svg.selectAll("path.link")
-      .data(links, function(d) { return d.target.id; })
+      .data(links, function(d) { return d.target.id; });
 
 
   // Enter any new links at the parent's previous position.
@@ -212,16 +283,15 @@ function highlight(d){
   if (document.getElementById("mode").checked === false)
     click(d);
   else {
-    console.log("here")
     var highlighted;
     if(highlight_list.indexOf(d) === -1){
-      highlight_list.push(d)
+      highlight_list.push(d);
       highlighted = true;
     }
     else
       highlight_list = highlight_list.filter(function(e){
         return e.id !==d.id;
-      })
+      });
     d3.select(this).select("circle").style("fill",function(d){
       if (highlighted === true)
         return "#fdae6b";
@@ -233,7 +303,7 @@ function highlight(d){
         return d.id;
       });
       if (index_list.indexOf(d.source.id) != -1 && index_list.indexOf(d.target.id) != -1) return "steelblue" ;
-    })
+    });
   }
 }
 

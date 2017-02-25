@@ -26,9 +26,8 @@ class RareEvents:
         t_0 = time()
         X = self.mu_0(N)
         xi = [X]
-        A = [] 
+        A = []
         G = []
-        
         p_0 = self.p_0
         L = np.array([-np.Inf,np.sort(self.score_function(X))[np.int((1-p_0)*N)]])
         k = 1
@@ -176,7 +175,7 @@ if __name__ == '__main__':
     print ('\n============================================================')
     # parameters 
     N_test = 100 
-    p_0_test = 0.1 
+    p_0_test = 0.5
     shaker = shaker_gaussian
     shake_times = 2 
     num_simulation = 200
