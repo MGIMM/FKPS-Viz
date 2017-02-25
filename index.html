@@ -36,7 +36,8 @@
 
 </style>
 <body>
-<button onClick="submit()">update</button>
+<button onClick="submit()">highlight</button>
+<button onClick="clear_highlight()">remove highlight</button>
 <button onClick="reset()">reset</button>
 <input id="mode" type="checkbox" value="highlight">highlight mode<br>
 <button onClick="redraw()">unit/scale</button>
@@ -185,8 +186,21 @@ function update(source) {
   // Enter any new nodes at the parent's previous position.
   var nodeEnter = node.enter().append("g")
       .attr("class", "node")
+      .attr("id",function(d){return d.name;})
       .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
-      .on("click", highlight)
+      .on("click",function(d){
+        var id = "#" + d.name;
+        highlight_path(id,d);
+      })
+      // .on("click", highlight)
+      // .on("mouseover",function(d){
+      //   var id = "#" + d.name;
+      //   highlight_path(id,d);
+      // })
+      // .on("mouseout",function(d){
+      //   var id = "#" + d.name;
+      //   dishighlight_path(id,d);
+      // })
       .attr("opacity", function (d) {return d.depth === 0 ? 0 : 1;});
 
   nodeEnter.append("circle")
@@ -244,6 +258,9 @@ function update(source) {
   // Enter any new links at the parent's previous position.
   link.enter().insert("path", "g")
       .attr("class", "link")
+      .attr("id",function(d){
+        return d.source.name+d.target.name;
+      })
       .attr("d", function(d) {
         var o = {x: source.x0, y: source.y0};
         return diagonal({source: o, target: o});
@@ -272,6 +289,16 @@ function update(source) {
 }
 var highlight_list = [];
 
+function clear_highlight(){
+  d3.selectAll(".node").selectAll("circle")
+  .transition()
+  .duration(duration)
+  .style("fill", function (d) {return d.children ? "lightsteelblue" : "#fff";});
+  d3.selectAll(".link")
+  .transition()
+  .duration(duration)
+  .style("stroke", "#ccc");
+}
 function reset(){
   d3.selectAll(".node")
   .transition()
@@ -306,6 +333,29 @@ function submit(){
   });
 }
 
+function highlight_path(id,node){
+  d3.select(id).select("circle").style("fill","#fdae6b");
+  if(highlight_list.indexOf(node) === -1){
+    highlight_list.push(node);
+  }
+  if(node.parent!==undefined && node.depth>1){
+    link_id="#"+node.parent.name+node.name;
+    d3.select(link_id).style("stroke","lightsteelblue");
+    var parent_id = "#"+node.parent.name;
+    highlight_path(parent_id, node.parent);
+  }
+}
+function dishighlight_path(id,node){
+  d3.select(id).select("circle").style("fill",function(d){
+    return d.children ? "lightsteelblue" : "#fff";
+  });
+  if(node.parent!==undefined && node.depth>1){
+    link_id="#"+node.parent.name+node.name;
+    d3.select(link_id).style("stroke","#ccc");
+    var parent_id = "#"+node.parent.name;
+    dishighlight_path(parent_id, node.parent);
+  }
+}
 function highlight(d){
   if (document.getElementById("mode").checked === false)
     click(d);
@@ -315,10 +365,12 @@ function highlight(d){
       highlight_list.push(d);
       highlighted = true;
     }
-    else
+    else{
       highlight_list = highlight_list.filter(function(e){
         return e.id !==d.id;
       });
+    }
+
     d3.select(this).select("circle").style("fill",function(d){
       if (highlighted === true)
         return "#fdae6b";
