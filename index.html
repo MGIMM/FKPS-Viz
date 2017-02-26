@@ -36,18 +36,20 @@
 
 </style>
 <body>
-<button onClick="submit()">highlight</button>
-<button onClick="clear_highlight()">remove highlight</button>
-<button onClick="reset()">reset</button>
-<input id="mode" type="checkbox" value="highlight">highlight mode<br>
-<button onClick="redraw()">unit/scale</button>
-<select id="depthSelected"  onchange="expandDepth()">
-  <option value=1>1</option>
-  <option value=2>2</option>
-  <option value=3>3</option>
-  <option value=4>4</option>
-  <option value=5>5</option>
-</select>
+<input id="mode" type="checkbox" value="highlight" onchange="changeMode()">highlight mode
+<div id="ctrlBtns" style="display: none;">
+  <button onClick="hideUnrelated()">hide unrelated particles</button>
+  <button onClick="showAll()">show unrelated particles</button>
+  <button onClick="clear_highlight()">clear highlight</button>
+</div>
+<div>
+  <hr>
+  <span>depth</span>
+  <select id="depthSelected"  onchange="expandDepth()">
+  </select>
+  <button onClick="redraw()">unit/scale</button>
+</div>
+
 <div id="tree"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script src="https://d3js.org/d3.v3.min.js"></script>
@@ -58,11 +60,11 @@ var margin = {top: 20, right: 120, bottom: 20, left: -50},
     height = 2000 - margin.top - margin.bottom;
 var min = Number.POSITIVE_INFINITY,
     max = Number.NEGATIVE_INFINITY;
-var scaleMode = true;
+var scaleMode = false;
 var i = 0,
     duration = 1500,
     root;
-var depth = 0;
+var depthSelected = 0;
 var tree = d3.layout.tree()
     .size([height, width]);
 
@@ -87,7 +89,8 @@ d3.json("data.json", function(error, flare) {
   root = flare;
   root.x0 = height / 2;
   root.y0 = 0;
-
+  var maxDepth = getDepth(root);
+  addOptions(maxDepth);
   recursion(root);
   scale.domain([min,max]);
   yAxis.scale(scale);
@@ -110,6 +113,28 @@ d3.json("data.json", function(error, flare) {
   // root.children.forEach(collapse);
   update(root);
 });
+
+function addOptions(depth) {
+  var selectHTML= "";
+  for(i = 1; i < depth; i = i + 1) {
+    if(i+1===depth) selectHTML += "<option value='" + i + "' selected>" + i + "</option>";
+    else selectHTML += "<option value='" + i + "'>" + i + "</option>";
+  }
+  document.getElementById("depthSelected").innerHTML=selectHTML;
+}
+
+getDepth = function (node) {
+  var depth = 0;
+  if (node.children) {
+      node.children.forEach(function (d) {
+          var tmpDepth = getDepth(d);
+          if (tmpDepth > depth) {
+              depth = tmpDepth;
+          }
+      });
+  }
+  return 1 + depth;
+};
 
 function redraw() {
   scaleMode = !scaleMode;
@@ -142,25 +167,23 @@ function recursion(node){
     }
 }
 function expand(d) {
-  if (d.depth < depth) {
+  if (d.depth < depthSelected) {
     if(d._children) {
       d.children = d._children;
       d._children = null;
-      d.children.forEach(expand);
     }
-    if(d.children) d.children.forEach(expand);
   }
   else{
     if(d.children) {
       d._children = d.children;
       d.children = null;
-      d._children.forEach(expand);
     }
-    if(d._children) d._children.forEach(expand);
   }
+  if(d._children) d._children.forEach(expand);
+  if(d.children) d.children.forEach(expand);
 }
 function expandDepth() {
-  depth = document.getElementById("depthSelected").value;
+  depthSelected = document.getElementById("depthSelected").value;
   root.children.forEach(expand);
   update(root);
 }
@@ -189,8 +212,11 @@ function update(source) {
       .attr("id",function(d){return d.name;})
       .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
       .on("click",function(d){
-        var id = "#" + d.name;
-        highlight_path(id,d);
+        if (document.getElementById("mode").checked === false) click(d);
+        else {
+          var id = "#" + d.name;
+          highlight_path(id,d);
+        }
       })
       // .on("click", highlight)
       // .on("mouseover",function(d){
@@ -262,7 +288,7 @@ function update(source) {
         return d.source.name+d.target.name;
       })
       .attr("d", function(d) {
-        var o = {x: source.x0, y: source.y0};
+        var o = {x: source.x, y: source.y};
         return diagonal({source: o, target: o});
       })
       .attr("opacity", function (d) {return d.source.depth === 0 ? 0 : 1;});
@@ -289,7 +315,15 @@ function update(source) {
 }
 var highlight_list = [];
 
+function changeMode() {
+  if (document.getElementById("mode").checked === true){
+    document.getElementById("ctrlBtns").style.display = 'block';
+
+  }
+  else document.getElementById("ctrlBtns").style.display = 'none';
+}
 function clear_highlight(){
+  highlight_list=[];
   d3.selectAll(".node").selectAll("circle")
   .transition()
   .duration(duration)
@@ -299,7 +333,7 @@ function clear_highlight(){
   .duration(duration)
   .style("stroke", "#ccc");
 }
-function reset(){
+function showAll(){
   d3.selectAll(".node")
   .transition()
   .duration(duration)
@@ -312,7 +346,7 @@ function reset(){
   .attr("opacity", function (d) {return d.source.depth === 0 ? 0 : 1;});
   // .style("stroke","#ccc")
 }
-function submit(){
+function hideUnrelated(){
   if (highlight_list.length===0) return;
   var index_list = highlight_list.map(function(d){
     return d.id;

@@ -37,7 +37,7 @@ class RareEvents:
             survive_index = []
             potential = np.zeros(N) 
             for i in range(N):
-                potential[i] += [self.score_function(X[i])> L[k]]
+                potential[i] = self.score_function(X[i])> L[k]
                 if potential[i]:
                     survive_index += [i]
             G += [potential]
@@ -56,7 +56,7 @@ class RareEvents:
             X = X_cloned
 
             
-            for sigma_range in np.arange(0.5,0.05,-0.05):
+            for sigma_range in np.arange(1.5,0.01,-0.02):
                 for j in range(N):
                     for index_shaker in range(shake_times):
                         X_iter = self.shaker(X[j],sigma_1 = sigma_range)
@@ -175,16 +175,21 @@ if __name__ == '__main__':
     print ('\n============================================================')
     # parameters 
 <<<<<<< HEAD
+<<<<<<< HEAD
     N_test = 1000 
     p_0_test = 0.2 
 =======
     N_test = 100 
     p_0_test = 0.5
 >>>>>>> ae71464f61d207065707a8042f26a60d2485f1eb
+=======
+    N_test = 50 
+    p_0_test = 0.4
+>>>>>>> 46a32d7ee6776607a67d1a713bcd41571f05900c
     shaker = shaker_gaussian
-    shake_times = 2 
+    shake_times = 20
     num_simulation = 200
-    level_test = 4 
+    level_test = 3
     test_info = '|num_particles_' + str(N_test) + '|' + \
             str(shaker).split(' ')[1] + '|shake_times_' + str(shake_times) 
             
@@ -218,13 +223,13 @@ if __name__ == '__main__':
         for i in range(N):
             for j in range(N):
                 if A[p][j] == i:
-                    links += [('('+str(p)+','+str(i)+')','('+str(p+1)+','+str(j)+')')]
+                    links += [('x'+str(p)+'_'+str(i),'x'+str(p+1)+'_'+str(j))]
     # json 
     import json
     
     parents, children = zip(*links)
     # root_nodes = {x for x in parents if x[1]==str(0)}
-    root_nodes = {'('+str(0)+','+str(i)+')' for i in range(N)}
+    root_nodes = {'x'+str(0)+'_'+str(i) for i in range(N)}
     for node in root_nodes:
         links.append(('Root', node))
     
