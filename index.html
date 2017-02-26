@@ -47,7 +47,7 @@
   <span>depth</span>
   <select id="depthSelected"  onchange="expandDepth()">
   </select>
-  <button onClick="redraw()">unit/scale</button>
+  <button onClick="redraw()">genealogy only / show values</button>
 </div>
 
 <div id="tree"></div>
@@ -56,7 +56,7 @@
 <script>
 
 var margin = {top: 20, right: 120, bottom: 20, left: -50},
-    width = 1500 - margin.right - margin.left,
+    width = 3000 - margin.right - margin.left,
     height = 2000 - margin.top - margin.bottom;
 var min = Number.POSITIVE_INFINITY,
     max = Number.NEGATIVE_INFINITY;
@@ -209,12 +209,12 @@ function update(source) {
   // Enter any new nodes at the parent's previous position.
   var nodeEnter = node.enter().append("g")
       .attr("class", "node")
-      .attr("id",function(d){return d.name;})
+      .attr("id",function(d){return d.label;})
       .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
       .on("click",function(d){
         if (document.getElementById("mode").checked === false) click(d);
         else {
-          var id = "#" + d.name;
+          var id = "#" + d.label;
           highlight_path(id,d);
         }
       })
@@ -242,7 +242,7 @@ function update(source) {
       .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
       .attr("dy", ".35em")
       .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
-      .text(function(d) { return d.name; })
+      .text(function(d) { return d.label; })
       .style("fill-opacity", 1e-6);
 
   // Transition nodes to their new position.
@@ -285,7 +285,7 @@ function update(source) {
   link.enter().insert("path", "g")
       .attr("class", "link")
       .attr("id",function(d){
-        return d.source.name+d.target.name;
+        return d.source.label+d.target.label;
       })
       .attr("d", function(d) {
         var o = {x: source.x, y: source.y};
@@ -373,9 +373,9 @@ function highlight_path(id,node){
     highlight_list.push(node);
   }
   if(node.parent!==undefined && node.depth>1){
-    link_id="#"+node.parent.name+node.name;
+    link_id="#"+node.parent.label+node.label;
     d3.select(link_id).style("stroke","lightsteelblue");
-    var parent_id = "#"+node.parent.name;
+    var parent_id = "#"+node.parent.label;
     highlight_path(parent_id, node.parent);
   }
 }
@@ -384,9 +384,9 @@ function dishighlight_path(id,node){
     return d.children ? "lightsteelblue" : "#fff";
   });
   if(node.parent!==undefined && node.depth>1){
-    link_id="#"+node.parent.name+node.name;
+    link_id="#"+node.parent.label+node.label;
     d3.select(link_id).style("stroke","#ccc");
-    var parent_id = "#"+node.parent.name;
+    var parent_id = "#"+node.parent.label;
     dishighlight_path(parent_id, node.parent);
   }
 }
