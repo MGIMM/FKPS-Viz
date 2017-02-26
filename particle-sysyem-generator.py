@@ -26,11 +26,10 @@ class RareEvents:
         t_0 = time()
         X = self.mu_0(N)
         xi = [X]
-        A = [] 
+        A = []
         G = []
-        
         p_0 = self.p_0
-        L = np.array([-np.Inf,np.sort(self.score_function(X))[np.int((1-p_0)*N)]])
+        L = np.array([-np.Inf,np.sort(self.score_function(X))[np.int(np.floor((1-p_0)*N))]])
         k = 1
 
         while(L[k]<self.level):
@@ -38,7 +37,7 @@ class RareEvents:
             survive_index = []
             potential = np.zeros(N) 
             for i in range(N):
-                potential[i] += [self.score_function(X[i])> L[k]]
+                potential[i] = self.score_function(X[i]) >= L[k]
                 if potential[i]:
                     survive_index += [i]
             G += [potential]
@@ -47,23 +46,23 @@ class RareEvents:
             if len(survive_index) == 0:        
                 break
 
-            A_k = np.zeros(N,dtype = np.int) 
+            A_k = [] 
             X_cloned = np.zeros(N)
             for i in range(N):
-                A_k[i] = np.random.choice(survive_index)
+                A_k += [np.random.choice(survive_index)]
                 X_cloned[i] = X[A_k[i]]
             
             A += [A_k]   
             X = X_cloned
 
             
-            for sigma_range in np.arange(0.5,0.05,-0.05):
+            for sigma_range in np.arange(1.,0.01,-0.05):
                 for j in range(N):
                     for index_shaker in range(shake_times):
                         X_iter = self.shaker(X[j],sigma_1 = sigma_range)
                     if self.score_function(X_iter)>L[k]:
                         X[j] = X_iter
-            L = np.append(L, np.sort(self.score_function(X))[np.int((1-p_0)*N)])
+            L = np.append(L, np.sort(self.score_function(X))[np.int(np.floor((1-p_0)*N))])
             xi += [X]
             k += 1
 
@@ -77,6 +76,7 @@ class RareEvents:
             print ("estimation of p: " + str(p_hat))
             print ('____________________________________________________________\n')
             print ("Time spent: %s s" %(time() - t_0) )
+            print ('Levels: ' + str(L))
             #print ("score_function called: %s times" % S_called_times)
         output = {'p_hat':p_hat,  \
                   'xi':xi,  \
@@ -175,12 +175,12 @@ if __name__ == '__main__':
     
     print ('\n============================================================')
     # parameters 
-    N_test = 100 
-    p_0_test = 0.1 
+    N_test = 50
+    p_0_test = 0.5
     shaker = shaker_gaussian
-    shake_times = 2 
-    num_simulation = 200
-    level_test = 4 
+    shake_times = 2
+    #num_simulation = 200
+    level_test = 4
     test_info = '|num_particles_' + str(N_test) + '|' + \
             str(shaker).split(' ')[1] + '|shake_times_' + str(shake_times) 
             
@@ -214,26 +214,33 @@ if __name__ == '__main__':
         for i in range(N):
             for j in range(N):
                 if A[p][j] == i:
-                    links += [('('+str(p)+','+str(i)+')','('+str(p+1)+','+str(j)+')')]
+                    links += [('X_' + 'L' + str(p) + 'N' + str(i) + '_' + \
+                        str(xi[p][i]) + '_' + str(int(G[p][i])),'X_' +\
+                        'L' + str(p+1) + 'N' + str(j) + '_' +
+                        str(xi[p+1][j])+ '_' + str(int(G[p+1][j])))]
     # json 
     import json
     
     parents, children = zip(*links)
     # root_nodes = {x for x in parents if x[1]==str(0)}
-    root_nodes = {'('+str(0)+','+str(i)+')' for i in range(N)}
+    root_nodes = ['X_' + 'L' + str(0) + 'N' + str(i) + '_' + \
+            str(xi[0][i])+ '_' + str(int(G[0][i])) for i in range(N)]
     for node in root_nodes:
         links.append(('Root', node))
     
     def get_nodes(node):
         d = {}
         d['name'] = node
+        # add particle information
+        if node != 'Root':
+            d['label'] = node.split('_')[1]
+            d['value'] = float(node.split('_')[2])
+            d['potential'] = int(node.split('_')[3])
+            # d['value'] = xi[int(node[2])][int(node[4])]
+        # add attribute: children
         children = get_children(node)
         if children:
             d['children'] = [get_nodes(child) for child in children]
-        # add particle information
-        if node != 'Root':
-            d['potential'] = G[int(node[1])][int(node[3])]
-            d['value'] = xi[int(node[1])][int(node[3])]
 
         return d
     
@@ -246,4 +253,3 @@ if __name__ == '__main__':
     # output
     with open('data.json', 'w') as fp:
         json.dump(tree, fp, indent=1)
-
