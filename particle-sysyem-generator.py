@@ -236,6 +236,8 @@ if __name__ == '__main__':
             d['label'] = node.split('_')[1]
             d['value'] = float(node.split('_')[2])
             d['potential'] = int(node.split('_')[3])
+            d['display_id'] = '('+ node.split('_')[1].split('N')[0][1:]+','\
+                    +node.split('_')[1].split('N')[1]+')'
             # d['value'] = xi[int(node[2])][int(node[4])]
         # add attribute: children
         children = get_children(node)
