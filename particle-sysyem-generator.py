@@ -175,7 +175,7 @@ if __name__ == '__main__':
     
     print ('\n============================================================')
     # parameters 
-    N_test = 50
+    N_test = 60
     p_0_test = 0.5
     shaker = shaker_gaussian
     shake_times = 2

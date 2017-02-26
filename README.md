@@ -7,15 +7,15 @@ Feynman-Kac Particle System Visulization
 
 * run `python -m SimpleHTTPServer 8000` to set up
 
-* got to the page `http://localhost:8000/` in the browser 
+* go to `http://localhost:8000/` in the browser 
  
-### 'particle-system-generator.py'
+### `particle-system-generator.py`
 
 * `N_test` :  number of particles
 
 * `p_0_test` : survive probability
 
-For the visulization, we take `N_test = 100`. As the number of
+For the visulization, we take `N_test = 60`. As the number of
 particles is relatively small, the quality of variance estimator may
 be affected.
 
