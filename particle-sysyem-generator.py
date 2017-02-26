@@ -56,7 +56,7 @@ class RareEvents:
             X = X_cloned
 
             
-            for sigma_range in np.arange(1.5,0.01,-0.02):
+            for sigma_range in np.arange(1.,0.01,-0.05):
                 for j in range(N):
                     for index_shaker in range(shake_times):
                         X_iter = self.shaker(X[j],sigma_1 = sigma_range)
@@ -174,18 +174,8 @@ if __name__ == '__main__':
     
     print ('\n============================================================')
     # parameters 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    N_test = 1000 
-    p_0_test = 0.2 
-=======
-    N_test = 100 
-    p_0_test = 0.5
->>>>>>> ae71464f61d207065707a8042f26a60d2485f1eb
-=======
     N_test = 50 
     p_0_test = 0.4
->>>>>>> 46a32d7ee6776607a67d1a713bcd41571f05900c
     shaker = shaker_gaussian
     shake_times = 20
     num_simulation = 200
@@ -223,26 +213,27 @@ if __name__ == '__main__':
         for i in range(N):
             for j in range(N):
                 if A[p][j] == i:
-                    links += [('x'+str(p)+'_'+str(i),'x'+str(p+1)+'_'+str(j))]
+                    links += [('X_'+str(p)+'^'+str(i),'X_'+str(p+1)+'^'+str(j))]
     # json 
     import json
     
     parents, children = zip(*links)
     # root_nodes = {x for x in parents if x[1]==str(0)}
-    root_nodes = {'x'+str(0)+'_'+str(i) for i in range(N)}
+    root_nodes = {'X_'+str(0)+'^'+str(i) for i in range(N)}
     for node in root_nodes:
         links.append(('Root', node))
     
     def get_nodes(node):
         d = {}
         d['name'] = node
+        # add particle information
+        if node != 'Root':
+            d['potential'] = G[int(node[2])][int(node[4])]
+            d['value'] = xi[int(node[2])][int(node[4])]
+        # add attribute: children
         children = get_children(node)
         if children:
             d['children'] = [get_nodes(child) for child in children]
-        # add particle information
-        if node != 'Root':
-            d['potential'] = G[int(node[1])][int(node[3])]
-            d['value'] = xi[int(node[1])][int(node[3])]
 
         return d
     
